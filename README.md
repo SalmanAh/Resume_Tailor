@@ -1,36 +1,81 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# 🎯 TailorHire - AI-Powered Resume Optimization Platform
 
-## Getting Started
+## 📋 Overview
 
-First, run the development server:
+TailorHire is a cutting-edge web application that uses artificial intelligence to optimize resumes for specific job descriptions. Built with modern technologies, it helps job seekers create tailored resumes that pass through ATS (Applicant Tracking Systems) and increase their chances of landing interviews.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## ✨ Features
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### �� Core Features
+- **AI-Powered Resume Tailoring**: Upload your resume and job description, get a perfectly tailored resume in seconds
+- **ATS Optimization**: Ensures your resume passes through automated screening systems
+- **Real-time Analysis**: Get instant feedback on resume-job match percentage
+- **Multiple Export Formats**: Download optimized resumes in PDF/DOCX formats
+- **Learning Resources**: Personalized skill recommendations and learning paths
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+### 🎨 User Experience
+- **Modern UI/UX**: Superhuman-inspired design with smooth animations
+- **Responsive Design**: Works seamlessly across all devices
+- **Magic Link Authentication**: Secure, passwordless login via email
+- **Dashboard Analytics**: Track your tailoring history and progress
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🛠️ Tech Stack
 
-## Learn More
+### Frontend
+- **Next.js 15.4.2** - React framework with App Router
+- **Tailwind CSS** - Utility-first CSS framework
+- **Lucide React** - Beautiful icons
+- **Recharts** - Data visualization for analytics
 
-To learn more about Next.js, take a look at the following resources:
+### Backend & Database
+- **Supabase** - Authentication and user management
+- **MongoDB** - NoSQL database for resume data
+- **Mongoose** - MongoDB object modeling
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### AI & Automation
+- **n8n** - Workflow automation for AI processing
+- **Custom AI Logic** - Resume analysis and optimization algorithms
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Deployment
+- **Vercel** - CI/CD deployment platform
+- **GitHub** - Version control and collaboration
 
-## Deploy on Vercel
+## 🚀 Getting Started
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Prerequisites
+- Node.js 18+ 
+- npm or yarn
+- MongoDB database
+- Supabase account
+- n8n instance
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/SalmanAh/Resume_Tailor.git
+   cd resume_tailor
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Environment Variables**
+   Create a `.env.local` file:
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   NEXT_PUBLIC_MONGODB_URL=your_mongodb_connection_string
+   ```
+
+4. **Run development server**
+   ```bash
+   npm run dev
+   ```
+
+5. **Open your browser**
+   Navigate to [http://localhost:3000](http://localhost:3000)
+
+## 📁 Project Structure
