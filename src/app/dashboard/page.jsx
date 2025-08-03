@@ -30,6 +30,7 @@ import {
 } from "lucide-react"
 import TailorResumeModal from "../../../components/tailor-resume-modal"
 import ResumeMatchChart from "../../../components/resume-match-chart"
+import Loader from "../../../components/Loader"
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true)
@@ -46,6 +47,9 @@ export default function Dashboard() {
   })
   const [userName, setUserName] = useState(null)
   const [selectedResumeId, setSelectedResumeId] = useState(null)
+  const [generatedPdfData, setGeneratedPdfData] = useState(null)
+  const [showPulseAnimation, setShowPulseAnimation] = useState(false)
+  const [isPdfLoading, setIsPdfLoading] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -142,41 +146,89 @@ export default function Dashboard() {
     router.replace("/");
   };
 
-  const downloadResumeAsPDF = async (resumeText, filename) => {
+
+
+  const downloadPDFFromN8n = async (pdfUrl, filename) => {
     try {
-      // Dynamically import jsPDF
-      const { jsPDF } = await import('jspdf');
-      const doc = new jsPDF();
+      // Create a temporary link element
+      const link = document.createElement('a');
+      link.href = pdfUrl;
+      link.download = filename || 'tailored-resume.pdf';
+      link.target = '_blank';
 
-      // Set font and size
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
+      // Append to body, click, and remove
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      alert('Failed to download PDF. Please try again.');
+    }
+  }
 
-      // Split text into lines that fit the page width
-      const pageWidth = doc.internal.pageSize.width;
-      const margin = 20;
-      const maxLineWidth = pageWidth - margin * 2;
+  const generatePDF = async () => {
+    if (!latestReport) {
+      alert('No report data available.');
+      return;
+    }
 
-      const lines = doc.splitTextToSize(resumeText, maxLineWidth);
+    if (!latestReport.tailoredResume) {
+      alert('No tailored resume available to generate PDF.');
+      return;
+    }
 
-      // Add text to PDF
-      let yPosition = margin;
-      const lineHeight = 5;
+    if (!latestReport.id) {
+      alert('Could not find resume ID. Please try again.');
+      return;
+    }
 
-      lines.forEach((line) => {
-        if (yPosition > doc.internal.pageSize.height - margin) {
-          doc.addPage();
-          yPosition = margin;
-        }
-        doc.text(line, margin, yPosition);
-        yPosition += lineHeight;
+    setIsPdfLoading(true);
+
+    try {
+      // Call our PDF generation API
+      const pdfResponse = await fetch('/api/generate-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resumeId: latestReport.id,
+          tailoredResumeText: latestReport.tailoredResume
+        })
       });
 
-      // Save the PDF
-      doc.save(filename);
+      const result = await pdfResponse.json();
+
+      if (result.success) {
+        // Automatically download the PDF
+        if (result.pdfData.pdfDownloadUrl) {
+          await downloadPDFFromN8n(
+            result.pdfData.pdfDownloadUrl, 
+            result.pdfData.fileName || `${latestReport.jobTitle}_Professional_Resume.pdf`
+          );
+          
+          // Set PDF data in state for immediate UI update
+          setGeneratedPdfData({
+            pdfDownloadUrl: result.pdfData.pdfDownloadUrl,
+            fileName: result.pdfData.fileName || `${latestReport.jobTitle}_Professional_Resume.pdf`,
+            message: result.pdfData.pdfMessage || 'PDF generated successfully'
+          });
+          
+          // Start pulse animation and stop after 4 seconds
+          setShowPulseAnimation(true);
+          setTimeout(() => {
+            setShowPulseAnimation(false);
+          }, 4000);
+          
+          // Refresh dashboard data to show the new PDF URL
+          await loadLatestData();
+        } else {
+          alert('PDF generated but download URL not received.');
+        }
+      } else {
+        alert('Failed to generate PDF: ' + (result.error || 'Unknown error'));
+      }
     } catch (error) {
-      console.error('Error generating PDF:', error);
       alert('Failed to generate PDF. Please try again.');
+    } finally {
+      setIsPdfLoading(false);
     }
   }
 
@@ -186,6 +238,23 @@ export default function Dashboard() {
       [id]: !prev[id],
     }))
   }
+
+  const handleResumeExpansion = () => {
+    const newExpandedState = !expandedResume;
+    setExpandedResume(newExpandedState);
+    if (newExpandedState) {
+      setTimeout(() => {
+        const expandedCard = document.getElementById('expanded-resume-card');
+        if (expandedCard) {
+          expandedCard.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+            inline: 'nearest'
+          });
+        }
+      }, 100);
+    }
+  };
 
   const getScoreColor = (score) => {
     if (score >= 90) return "text-emerald-600"
@@ -463,6 +532,109 @@ export default function Dashboard() {
               </Card>
             )}
 
+            {/* 3. Expanded Tailored Resume - Moved from sidebar to main content */}
+            {expandedResume && latestReport?.tailoredResume && (
+              <Card 
+                id="expanded-resume-card"
+                className="border-0 shadow-2xl shadow-emerald-500/20 animate-slide-up" 
+                style={{ 
+                  background: 'linear-gradient(135deg, #373B44 0%, #373B44 25%, #4b134f 50%, #4b134f 75%, #4b134f 100%)',
+                  animationDelay: '0.4s' 
+                }}
+              >
+                <CardHeader className="bg-transparent text-white border-b border-white/20">
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm shadow-lg">
+                        <FileText className="w-7 h-7 text-white" />
+                      </div>
+                      <div>
+                        <span className="text-3xl font-bold text-white">Tailored Resume</span>
+                        <p className="text-emerald-100 text-lg mt-2">Your AI-optimized resume for this position</p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setExpandedResume(false)}
+                      className="text-white hover:bg-white/20 rounded-xl p-3 transition-all duration-300 hover:scale-105"
+                    >
+                      <span className="text-2xl">✕</span>
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-8">
+                  <div className="flex flex-col gap-4 mb-6">
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <Button 
+                        size="lg" 
+                        variant="outline" 
+                        className="bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-white/30 rounded-xl px-6 transition-all duration-300 w-full sm:w-auto"
+                      >
+                        <Copy className="w-5 h-5 mr-2" />
+                        Copy
+                      </Button>
+                      {!latestReport.tailoredPdfUrl && (
+                        <Button 
+                          size="lg" 
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-6 py-4 shadow-lg transition-all duration-300 w-full sm:w-auto"
+                          onClick={generatePDF}
+                        >
+                          <Sparkles className="w-5 h-5 mr-2" />
+                          Generate Professional PDF
+                        </Button>
+                      )}
+
+                      {latestReport.tailoredPdfUrl && (
+                        <Button 
+                          size="lg" 
+                          className="bg-green-600 hover:bg-green-700 text-white rounded-xl px-6 py-4 shadow-lg transition-all duration-300 w-full sm:w-auto"
+                          onClick={generatePDF}
+                        >
+                          <Download className="w-5 h-5 mr-2" />
+                          Download Professional PDF
+                        </Button>
+                      )}
+
+                    </div>
+                  </div>
+                  
+                  {/* PDF Download Message */}
+                  {(latestReport?.tailoredPdfUrl || generatedPdfData?.pdfDownloadUrl) && (
+                    <div className={`mb-6 bg-emerald-500/20 backdrop-blur-sm rounded-xl p-4 border border-emerald-400/30 ${showPulseAnimation ? 'animate-pulse' : ''}`}>
+                      <div className="flex items-start space-x-3">
+                        <div className="flex-shrink-0">
+                          <div className="w-6 h-6 bg-emerald-400 rounded-full flex items-center justify-center">
+                            <span className="text-emerald-900 text-sm font-bold">✓</span>
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-emerald-100 text-sm leading-relaxed">
+                            <strong>Professional PDF Ready!</strong> You can view your tailored resume by clicking on this{' '}
+                            <a 
+                              href={generatedPdfData?.pdfDownloadUrl || latestReport?.tailoredPdfUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-500 hover:text-blue-400 underline font-medium transition-colors duration-200"
+                            >
+                              Tailored Resume PDF
+                            </a>
+                            . You can also save it to your device by clicking on the "Save as" button in the top right corner of the PDF viewer.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+                    <pre className="whitespace-pre-wrap text-white font-mono leading-relaxed text-base">
+                      {latestReport.tailoredResume}
+                    </pre>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* 3. Resume History Section - Enhanced */}
             {showHistory && hasResumeHistory && (
               <Card className="border-0 shadow-2xl shadow-emerald-500/20 bg-gradient-to-br from-emerald-800 via-blue-800 to-indigo-900 overflow-hidden animate-slide-up" style={{ animationDelay: '0.3s' }}>
@@ -628,7 +800,7 @@ export default function Dashboard() {
               </Card>
             )}
 
-            {/* Collapsible Resume - Moved from Suggested Improvements */}
+            {/* Collapsible Resume - Original Full Functionality */}
             {latestReport?.tailoredResume && (
               <Card className="rounded-2xl p-6 animate-slide-up" style={{ 
                 animationDelay: '0.5s',
@@ -647,54 +819,16 @@ export default function Dashboard() {
                     color: expandedResume ? 'white' : '#374151',
                     transition: 'all 1s ease-in-out'
                   }}
-                  onClick={() => setExpandedResume(!expandedResume)}
+                  onClick={handleResumeExpansion}
                 >
                   <span className="flex items-center font-semibold">
                     <FileText className="w-6 h-6 mr-3" style={{ color: expandedResume ? 'white' : '#6B7280' }} />
                     View Tailored Resume
                   </span>
-                  <ChevronDown className={`w-6 h-6 transition-transform duration-300`} style={{ color: expandedResume ? 'white' : '#6B7280' }} />
+                  <ChevronDown className={`w-6 h-6 transition-transform duration-300 ${expandedResume ? 'rotate-180' : ''}`} style={{ color: expandedResume ? 'white' : '#6B7280' }} />
                 </Button>
                 
-                {expandedResume && (
-                  <div className="mt-6 rounded-2xl p-8 shadow-xl border border-white/30 animate-slide-down" style={{
-                    animationDelay: '0.8s',
-                    transition: 'all 1.5s ease-in-out',
-                    background: 'linear-gradient(135deg, #373B44 0%, #373B44 50%, #4b134f 50%, #4b134f 100%)'
-                  }}>
-                    <div className="flex flex-col gap-4 mb-6">
-                      <h3 className="text-2xl font-bold text-white">Tailored Resume</h3>
-                      <div className="flex flex-col sm:flex-row gap-3">
-                        <Button 
-                          size="lg" 
-                          variant="outline" 
-                          className="bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-white/30 rounded-xl px-6 transition-all duration-300 w-full sm:w-auto"
-                        >
-                          <Copy className="w-5 h-5 mr-2" />
-                          Copy
-                        </Button>
-                        <Button 
-                          size="lg" 
-                          className="text-white rounded-xl px-6 py-4 shadow-lg transition-all duration-300 w-full sm:w-auto"
-                          style={{
-                            background: 'linear-gradient(to right, #1488CC 0%, #1E90FF 25%, #4169E1 50%, #2B32B2 75%, #2B32B2 100%)'
-                          }}
-                          onClick={async () => {
-                            await downloadResumeAsPDF(latestReport.tailoredResume, `${latestReport.jobTitle}_Resume.pdf`);
-                          }}
-                        >
-                          <Download className="w-5 h-5 mr-2" />
-                          Download PDF
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-                      <pre className="whitespace-pre-wrap text-white font-mono leading-relaxed text-base">
-                        {latestReport.tailoredResume}
-                      </pre>
-                    </div>
-                  </div>
-                )}
+
               </Card>
             )}
 
@@ -710,9 +844,13 @@ export default function Dashboard() {
                   <p className="text-emerald-100 text-lg mb-6">See all your tailored resumes and track your progress</p>
                   <Button
                     onClick={() => setShowHistory(!showHistory)}
-                    className="w-full bg-white text-emerald-600 hover:bg-emerald-50 font-bold py-4 rounded-2xl text-lg shadow-xl transition-all duration-300 transform hover:scale-105"
+                    className="w-full bg-white text-emerald-600 hover:bg-emerald-50 font-bold py-10 px-8 rounded-2xl text-xl shadow-xl transition-all duration-300 transform hover:scale-105"
                   >
-                    {showHistory ? "Hide History" : "Show History"}
+                                          {!showHistory ? "Show History" : (
+                        <span>
+                          Hide History <br /> <span className="animate-pulse text-5xl text-blue-500">↓</span>
+                        </span>
+                      )}
                   </Button>
                 </CardContent>
               </Card>
@@ -720,6 +858,23 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* PDF Generation Loading Overlay */}
+      {isPdfLoading && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-white/95 backdrop-blur-md rounded-2xl p-8 shadow-2xl border border-purple-200/30 max-w-sm w-full mx-4">
+            <div className="flex flex-col items-center space-y-6">
+              <div className="scale-75 transform">
+                <Loader />
+              </div>
+              <div className="text-center space-y-2">
+                <h3 className="text-lg font-semibold text-gray-800">Generating Professional PDF...</h3>
+                <p className="text-sm text-gray-600">This usually takes 10-15 seconds</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <TailorResumeModal isOpen={isTailorModalOpen} onClose={() => setIsTailorModalOpen(false)} />
 

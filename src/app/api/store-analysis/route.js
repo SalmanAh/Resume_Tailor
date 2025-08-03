@@ -33,6 +33,8 @@ export async function POST(req) {
 
     return new Response(JSON.stringify({ success: true }), { status: 200 });
   } catch (e) {
+    console.error('❌ Error in store-analysis:', e);
+    console.error('❌ Error stack:', e.stack);
     return new Response(JSON.stringify({ error: e.message }), { status: 500 });
   }
 } 

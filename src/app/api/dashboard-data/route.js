@@ -33,6 +33,8 @@ export async function GET(req) {
       resumeId: latestResume._id 
     }).sort({ createdAt: -1 });
 
+
+
     // Get the latest suggestions
     const latestSuggestions = await Suggestion.findOne({ 
       userId, 
@@ -48,6 +50,7 @@ export async function GET(req) {
 
     // Format latest report data
     const latestReport = latestAnalysis ? {
+      id: latestResume._id.toString(), // Add resume ID
       jobTitle: latestResume.jobId?.jobTitle || 'Unknown Position',
       company: latestResume.jobId?.company || 'Unknown Company',
       matchPercentage: latestAnalysis.matchPercentage || 0,
@@ -57,8 +60,27 @@ export async function GET(req) {
       missingSkills: latestAnalysis.missingSkills || [],
       uploadDate: latestResume.createdAt,
       tailoredSummary: latestResume.tailoredSummary || latestAnalysis.tailoredSummary || 'No summary available.',
-      tailoredResume: latestResume.tailoredResumeText || 'No tailored resume available.'
-    } : null;
+      tailoredResume: latestResume.tailoredResumeText || 'No tailored resume available.',
+      tailoredPdfUrl: latestResume.tailoredPdfUrl || null,
+      pdfFileName: latestResume.pdfFileName || null,
+      pdfMessage: latestResume.pdfMessage || null
+    } : {
+      // Even if no analysis, still return basic resume data with ID
+      id: latestResume._id.toString(),
+      jobTitle: latestResume.jobId?.jobTitle || 'Unknown Position',
+      company: latestResume.jobId?.company || 'Unknown Company',
+      matchPercentage: 0,
+      matchedSkills: 0,
+      totalSkills: 0,
+      matchedKeywords: [],
+      missingSkills: [],
+      uploadDate: latestResume.createdAt,
+      tailoredSummary: latestResume.tailoredSummary || 'No summary available.',
+      tailoredResume: latestResume.tailoredResumeText || 'No tailored resume available.',
+      tailoredPdfUrl: latestResume.tailoredPdfUrl || null,
+      pdfFileName: latestResume.pdfFileName || null,
+      pdfMessage: latestResume.pdfMessage || null
+    };
 
     // Format suggestions data
     const suggestions = latestSuggestions ? {

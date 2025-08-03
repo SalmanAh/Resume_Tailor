@@ -9,6 +9,7 @@ import Switch from "./ui/switch"
 import { Upload, Sparkles } from "lucide-react"
 import { supabase } from "../lib/supabase";
 import { connectDB, getModels } from "../lib/mongodb";
+import Loader from "./Loader"
 
 export default function TailorResumeModal({ isOpen, onClose }) {
   const [selectedFile, setSelectedFile] = useState(null)
@@ -147,7 +148,7 @@ export default function TailorResumeModal({ isOpen, onClose }) {
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-2xl bg-slate-800/90 backdrop-blur-md border-purple-200/30 max-h-[90vh] overflow-y-auto shadow-2xl shadow-purple-500/20">
         <DialogHeader>
-          <div className="flex items-center space-x-3 mb-6">
+          <DialogTitle className="flex items-center space-x-3 mb-6">
             <div className="w-12 h-12 bg-transparent rounded-xl flex items-center justify-center shadow-lg">
               <img src="/File.png" alt="TailorHire Logo" className="w-8 h-8" />
             </div>
@@ -157,7 +158,7 @@ export default function TailorResumeModal({ isOpen, onClose }) {
               </h2>
               <p className="text-sm text-gray-300">AI-Powered Resume Optimization</p>
             </div>
-          </div>
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
@@ -246,28 +247,25 @@ export default function TailorResumeModal({ isOpen, onClose }) {
               disabled={!selectedFile || !jobTitle.trim() || !jobDescription.trim() || isProcessing}
               className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white py-5 px-8 text-xl font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg shadow-purple-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isProcessing ? (
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Tailoring Resume...</span>
-                </div>
-              ) : (
-                <div className="flex items-center space-x-2">
-                  <Sparkles className="w-4 h-4" />
-                  <span>Tailor Now</span>
-                </div>
-              )}
+              <div className="flex items-center space-x-2">
+                <Sparkles className="w-4 h-4" />
+                <span>{isProcessing ? "Processing..." : "Tailor Now"}</span>
+              </div>
             </Button>
           </div>
 
           {/* Processing Info */}
           {isProcessing && (
-            <div className="bg-purple-500/10 border border-purple-300/30 rounded-xl p-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-6 h-6 border-2 border-purple-400 border-t-transparent rounded-full animate-spin"></div>
-                <div>
-                  <p className="text-sm font-medium text-purple-200">AI is analyzing your resume...</p>
-                  <p className="text-xs text-purple-300">This usually takes 13-16 seconds</p>
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+              <div className="bg-white/95 backdrop-blur-md rounded-2xl p-8 shadow-2xl border border-purple-200/30 max-w-sm w-full mx-4">
+                <div className="flex flex-col items-center space-y-6">
+                  <div className="scale-75 transform">
+                    <Loader />
+                  </div>
+                  <div className="text-center space-y-2">
+                    <h3 className="text-lg font-semibold text-gray-800">AI is analyzing your resume...</h3>
+                    <p className="text-sm text-gray-600">This usually takes 35-40 seconds</p>
+                  </div>
                 </div>
               </div>
             </div>
